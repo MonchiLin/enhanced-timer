@@ -1,0 +1,27 @@
+{
+  "name": "@monchilin/countdown",
+  "version": "0.0.1",
+  "scripts": {
+    "lint": "eslint . --ext .ts",
+    "fix": "eslint . --ext .ts --fix",
+    "build": "tsc -b ./tsconfig.json"
+  },
+  "private": false,
+  "main": "dist/index.js",
+  "type": "dist/index.d.ts",
+  "repository": "https://github.com/MonchiLin/countdown.git",
+  "author": "MonchiLin <lin912305043@gmail.com>",
+  "license": "MIT",
+  "files": [
+    "dist"
+  ],
+  "devDependencies": {
+    "typescript": "^3.8.3",
+    "@typescript-eslint/eslint-plugin": "^2.24.0",
+    "@typescript-eslint/parser": "^2.24.0",
+    "eslint": "^6.8.0"
+  },
+  "peerDependencies": {
+    "react": "^16.13.0"
+  }
+}
