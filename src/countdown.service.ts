@@ -86,10 +86,11 @@ class CountdownService {
 
     const inBrowser = typeof window === "undefined";
     const supportRAF = typeof requestAnimationFrame === "undefined";
+    this.config.mode = (inBrowser && (supportRAF && config.mode === "RAF")) ? "RAF" : "interval"
 
     // 若是在浏览器的环境中则默认使用 requestAnimationFrame 来实现，否则使用 setInterval 实现
     // 当然，若是手动指定定时器为 "interval" 则强制使用 setInterval
-    this.requestInterval = inBrowser &&  (supportRAF && config.mode === "RAF")
+    this.requestInterval = this.config.mode === "RAF"
       ? (fn, delay) => {
         // 记录开始时间
         let start = new Date().getTime();
