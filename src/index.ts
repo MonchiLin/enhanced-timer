@@ -1,5 +1,10 @@
 import CountdownService from "./countdown.service";
 
-export * from './type'
+export {
+  ConsConfig,
+  CountdownConfig,
+  CountdownListener,
+  CountdownTimer
+} from './type'
 
 export default CountdownService

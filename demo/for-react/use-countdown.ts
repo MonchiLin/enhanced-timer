@@ -1,7 +1,7 @@
 import {useEffect, useRef, useState} from "react";
-import CountdownService, {CountdownConfig} from "../../src";
+import CountdownService, {CountdownConfig} from "../../dist";
 
-type UseCountDownParameter = {
+export type UseCountDownParameter = {
   initialValue;
   token?: string | number;
 }
@@ -54,7 +54,5 @@ function useCountDown(
   }
 }
 
-export {
-  useCountDown,
-  UseCountDownParameter
-}
+export default useCountDown
+
