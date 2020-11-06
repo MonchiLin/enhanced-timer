@@ -3,6 +3,7 @@ type ConsConfig = {
   log?: boolean;
   mode?: "interval" | "RAF";
   precision?: number;
+  unique?: boolean;
 }
 
 type CountdownListener = (v: number) => void

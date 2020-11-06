@@ -9,6 +9,7 @@ const DEFAULT_CONFIG: Required<ConsConfig> = {
   mode: 'RAF',
   log: false,
   token: 'default',
+  unique: false,
 };
 
 class CountdownService {
@@ -87,6 +88,7 @@ class CountdownService {
    * @param config.log       是否开启 log
    * @param config.mode      定时器的实现
    * @param config.precision 精度，单位为毫秒，用于自动矫正时间
+   * @param config.unique    语义为："唯一"，实际作用请参考 #100 行
    */
   constructor(config: ConsConfig) {
     this.config = {
@@ -95,7 +97,8 @@ class CountdownService {
     };
 
     // 尝试根据 token 从 timerWorks 删除该 token
-    this.tryRemoveTimerByToken(config.token);
+    // 在某些场景下，可能不想删除，所以给出 unique 选项来自定义
+    this.config.unique && this.tryRemoveTimerByToken(config.token);
 
     const supportRAF = typeof requestAnimationFrame === 'undefined';
     this.config.mode = supportRAF && config.mode === 'RAF' ? 'RAF' : 'interval';
