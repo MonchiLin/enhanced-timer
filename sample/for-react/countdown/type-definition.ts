@@ -13,7 +13,6 @@ export namespace CountdownTypeDefinition {
     onPause?: () => void
     onResume?: () => void
   }
-  export type Task = (v: number) => void
   export type Source = "manual" | "automatic"
   export type Direction = "increase" | "decrease"
   export type Handle = {

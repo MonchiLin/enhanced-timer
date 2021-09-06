@@ -22,6 +22,20 @@ const TAG = '[countdown.service]'
 
 type NorS = number | string
 
+
+// 仅用于调试
+// function timeConverter(timestamp: number) {
+//   var a = new Date(timestamp);
+//   var months = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+//   var year = a.getFullYear();
+//   var month = months[a.getMonth()];
+//   var date = a.getDate();
+//   var hour = a.getHours();
+//   var min = a.getMinutes();
+//   var sec = a.getSeconds();
+//   return `${year}-${month}-${date} ${hour}:${min}:${sec}`;
+// }
+
 const arithmeticWrapper = (fn: (arg1: number, arg2: number) => number | string) => {
   return (arg1: NorS, arg2: NorS) => {
     if (typeof arg1 === "string") {
@@ -114,7 +128,7 @@ const setIntervalRAF = (fn: (...args: any[]) => void, delay: number) => {
     // loop 本次被调用的时间
     const current = new Date().getTime();
     // 计算距离上次调用 loop 过了多久 = 本次调用时间 - 起始时间
-    const delta = current - start;
+    const delta = sub(current, start);
     // 如果 delta >= delay 就意味着已经经过 delay 的时间，将再次调用 fn
     if (delta >= delay) {
       fn();
@@ -135,21 +149,14 @@ export class Countdown {
     return this._isPause
   };
 
-  private _isPause = false
-
-  /**
-   * 当定时器到达 step 时执行的函数集合，可以添加多个
-   * 这是一个私有函数，你不应该访问他，而是应该通过
-   * @private
-   */
-  private tasks: CountdownTypeDefinition.Task[] = [];
+  private _isPause = false;
 
   // 一些用于矫正时间的数据
   private timeForRectification = {
     // 启动定时器时的时间     = Date.getTime()
     thisStartUpTime: 0,
-    // 本次定时器器开始时间   = Date.getTime()
-    currentStartUpTime: 0,
+    // 本次定时器期望结束时间
+    thisExpectedEndTime: 0,
     // 本次定时器器望结束时间  = 启动定时器时的时间 + (单位时间 * 1000) 乘 1000 是因为用的毫秒级时间戳
     //    单位时间 = 递减 ? (from - to) / step : (to - from) / step
     currentExpectedEndTime: 0
@@ -207,6 +214,10 @@ export class Countdown {
       ...config,
     };
 
+    if (this.config.precision <= 0) {
+      this.log("config.precision should be greater than 0.")
+    }
+
     this.config.intervalImpl = (supportRAF && this.config.intervalImpl === 'RAF') ? 'RAF' : 'interval';
 
     // 若是在浏览器的环境中则默认使用 requestAnimationFrame 来实现，否则使用 setInterval 实现
@@ -234,8 +245,10 @@ export class Countdown {
 
     if (this.timerConfig.from > this.timerConfig.to) {
       this.direction = "decrease"
-    } else if (this.timerConfig.from > this.timerConfig.to) {
+    } else if (this.timerConfig.from < this.timerConfig.to) {
       this.direction = "increase"
+      this.currentTimerConfig.from = this.timerConfig.to
+      this.currentTimerConfig.to = this.timerConfig.from
     }
 
     this._isPause = false
@@ -251,7 +264,6 @@ export class Countdown {
    * 终止当前 timer
    */
   private clearInterval = (): void => {
-    this.log('clearRequestInterval');
     switch (this.config.intervalImpl) {
       case "interval":
         return clearInterval(this.handle.timer);
@@ -279,68 +291,67 @@ export class Countdown {
 
     // 起始时间 = 当前时间
     this.timeForRectification.thisStartUpTime = new Date().getTime();
+    this.timeForRectification.thisExpectedEndTime = this.timeForRectification.thisStartUpTime + (((from - to) / step) * delay);
+
+    // console.log("起始时间为：", timeConverter(this.timeForRectification.thisStartUpTime))
 
     // 这里乘 1000 是因为用的时间戳做对比
-    this.timeForRectification.currentExpectedEndTime = this.timeForRectification.thisStartUpTime + delay
+    this.timeForRectification.currentExpectedEndTime = add(this.timeForRectification.thisStartUpTime, delay)
 
-    // this.log('onStart');
     this.hooks.onStart();
 
     this.handle = this.setInterval(() => {
-      if (this.IsCompleted) {
-        this.hooks.onUpdate(this.currentTimerConfig.to)
-        this.tasks.forEach((cb) => cb?.(this.currentTimerConfig.to));
+      if (this.currentTimerConfig.from <= to) {
+        this.handleUpdate(this.timerConfig.to)
         return this.complete()
       }
 
       // this.log('countdown loop currentFromValue =>', this.currentFromValue);
       const NotCompletedFromRectifyTime = this.rectifyTime()
       if (NotCompletedFromRectifyTime) {
-        this.timeForRectification.currentExpectedEndTime = this.timeForRectification.currentExpectedEndTime + delay
-        this.hooks.onUpdate(this.currentTimerConfig.from)
-        this.tasks.forEach((cb) => cb?.(this.currentTimerConfig.from));
-        this.currentTimerConfig.from = this.getNewCurrentFromValue()
+        /**
+         * 假如起始时间为：      12:00
+         * 步进为              1分钟
+         * 当前已经执行过了一分   12:01
+         * 那么下次执行时间应该为  12:02 = 12:00 + 已执行时间 + 步进
+         *
+         */
+        this.timeForRectification.currentExpectedEndTime = this.getNewCurrentExpectedEndTime()
+        // console.log("新的期望时间为：", timeConverter(this.timeForRectification.currentExpectedEndTime))
+
+        let displayValue = this.currentTimerConfig.from
+
+        /**
+         * 假如 from = 0，to = 60，delay = 1000，step = 1
+         * 按照所有的情况都按递减处理，执行一次后 from = 59，to = 0，此时真实的值为 60 -59 = 1
+         */
+        if (this.direction === "increase") {
+          displayValue = sub(this.timerConfig.to, this.currentTimerConfig.from)
+        }
+        this.handleUpdate(displayValue)
+        this.currentTimerConfig.from = sub(this.currentTimerConfig.from, step)
       } else {
-        debugger
+        this.handleUpdate(this.timerConfig.to)
         return this.complete()
       }
     }, delay);
   }
 
-  private getNewCurrentFromValue() {
-    const step = this.currentTimerConfig.step
-    switch (this.direction) {
-      case "decrease":
-        return sub(this.currentTimerConfig.from, step)
-      case "increase":
-        return add(this.currentTimerConfig.from, step)
-    }
+  private handleUpdate(displayValue: number) {
+    this.hooks.onUpdate(displayValue)
   }
 
-  /**
-   * 如果 from 到 to 是递减的，则判断当前值是否大于 to
-   * 如果 from 到 to 是递增的，则判断当前值是否小于 to
-   *
-   * @private
-   * @return boolean
-   */
-  private get IsCompleted() {
-    const to = this.currentTimerConfig.to
-    switch (this.direction) {
-      case "decrease":
-        return this.currentTimerConfig.from <= to
-      case "increase":
-        return this.currentTimerConfig.from >= to
-    }
-
-  }
-
-  /**
-   * 增加一个 task，每次会被定时器回调
-   * @param listener
-   */
-  addTask(listener: CountdownTypeDefinition.Task) {
-    this.tasks.push(listener);
+  private getNewCurrentExpectedEndTime() {
+    return add(
+      add(
+        this.timeForRectification.thisStartUpTime,
+        add(
+          mul(sub(this.timerConfig.from, this.currentTimerConfig.from), 1000),
+          this.currentTimerConfig.delay
+        )
+      ),
+      this.currentTimerConfig.delay
+    )
   }
 
   private complete() {
@@ -372,40 +383,32 @@ export class Countdown {
      *
      */
 
-    const {delay, from} = this.currentTimerConfig
+    const {delay} = this.currentTimerConfig
+    const {thisStartUpTime, currentExpectedEndTime} = this.timeForRectification
     const now = new Date().getTime();
 
-    // 偏差 = 当前的倒计时 - 期望的当前剩余时间 / 1000 （因为期望的剩余时间是时间戳）
-    const offset = sub(
-      sub(now, this.timeForRectification.currentExpectedEndTime),
+    // 偏差 = 当前的倒计时 - 期望的当前剩余时间 - delay
+    let offset = sub(
+      sub(now, currentExpectedEndTime),
       delay
     )
 
-    if (offset > 0) {
-      const count = offset / delay
+    // console.log("新的当前时间为：", timeConverter(now))
+    // console.log("offset", offset)
+
+    if (offset > this.config.precision) {
       // 检测少执行的次数
-      debugger
+      const count = div(offset, delay)
+      this.currentTimerConfig.from = sub(this.currentTimerConfig.from, mul(count, div(delay, 1000)))
+      // 已经过了多少秒
+      const time = (((this.timerConfig.from - this.currentTimerConfig.from) * 1000) + thisStartUpTime)
+      // console.log("已经过了多少秒：", this.timerConfig.from - this.currentTimerConfig.from)
+      // console.log("已经过了多少秒：", timeConverter(time))
+      if (time > this.timeForRectification.thisExpectedEndTime) {
+        return false
+      }
     }
 
-    // this.log('误差 =>', offset);
-    // 处理离开屏幕太久的情况, 早就已经完成了倒计时，在调用函数的地方进行处理，若是返回 false 则认为已经倒计时结束
-    if (offset > from) {
-      return false;
-    }
-
-    // if (offset >= div(this.config.precision, 1000)) {
-    //   // this.config.precision：精度
-    //   // 如果误差已经大于容许的偏差则矫正一次当前的倒计时
-    //   switch (this.direction) {
-    //     case "decrease":
-    //       this.currentTimerConfig.from -= offset
-    //       break
-    //     case "increase":
-    //       this.currentTimerConfig.from += offset
-    //       break
-    //   }
-    // }
-    // console.log("leave", this.currentTimerConfig.from, offset)
     return true;
   }
 
@@ -457,7 +460,6 @@ export class Countdown {
    * 清理定时器
    */
   destroy() {
-    this.log('destroy');
     // 有可能 handle 还不存在
     if (this.handle) {
       this.clearInterval();

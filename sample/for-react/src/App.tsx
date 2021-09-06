@@ -1,10 +1,11 @@
-import React from 'react'
-import { HooksApi } from "./HooksApi";
+import React, { useState } from 'react'
+import { HooksApi } from "./HooksApi/HooksApi";
 
 function App() {
+  const [componentStyle, updateComponentStyle] = useState<"Hooks" | "Class">("Hooks")
 
   return (
-    <div style={{width: '100vw', height: '100vh', display: "flex", justifyContent: "center", alignItems: "center"}}>
+    <div>
       <HooksApi/>
     </div>
   )
