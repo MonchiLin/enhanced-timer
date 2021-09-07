@@ -20,9 +20,6 @@ const DEFAULT_HOOKS: Required<CountdownTypeDefinition.Hooks> = {
 
 const TAG = '[countdown.service]'
 
-type NorS = number | string
-
-
 // 仅用于调试
 // function timeConverter(timestamp: number) {
 //   var a = new Date(timestamp);
@@ -35,83 +32,6 @@ type NorS = number | string
 //   var sec = a.getSeconds();
 //   return `${year}-${month}-${date} ${hour}:${min}:${sec}`;
 // }
-
-const arithmeticWrapper = (fn: (arg1: number, arg2: number) => number | string) => {
-  return (arg1: NorS, arg2: NorS) => {
-    if (typeof arg1 === "string") {
-      arg1 = Number.parseFloat(arg1)
-    }
-    if (typeof arg2 === "string") {
-      arg2 = Number.parseFloat(arg2)
-    }
-    const result = fn(arg1, arg2)
-    return Number.parseFloat(result.toString())
-  }
-}
-
-// https://www.jianshu.com/p/a026245661bb
-const add = arithmeticWrapper((arg1: number, arg2: number) => {
-  var r1, r2, m;
-  try {
-    r1 = arg1.toString().split(".")[1].length
-  } catch (e) {
-    r1 = 0
-  }
-  try {
-    r2 = arg2.toString().split(".")[1].length
-  } catch (e) {
-    r2 = 0
-  }
-  m = Math.pow(10, Math.max(r1, r2))
-  return (arg1 * m + arg2 * m) / m
-})
-
-const sub = arithmeticWrapper((arg1: number, arg2: number) => {
-  var r1, r2, m, n;
-  try {
-    r1 = arg1.toString().split(".")[1].length
-  } catch (e) {
-    r1 = 0
-  }
-  try {
-    r2 = arg2.toString().split(".")[1].length
-  } catch (e) {
-    r2 = 0
-  }
-  m = Math.pow(10, Math.max(r1, r2));
-  //动态控制精度长度
-  n = (r1 >= r2) ? r1 : r2;
-  return ((arg1 * m - arg2 * m) / m).toFixed(n);
-})
-
-const mul = arithmeticWrapper((arg1: number, arg2: number) => {
-  var m = 0, s1 = arg1.toString(), s2 = arg2.toString();
-  try {
-    m += s1.split(".")[1].length
-  } catch (e) {
-  }
-  try {
-    m += s2.split(".")[1].length
-  } catch (e) {
-  }
-  return Number(s1.replace(".", "")) * Number(s2.replace(".", "")) / Math.pow(10, m)
-})
-
-
-const div = arithmeticWrapper((arg1: number, arg2: number) => {
-  var t1 = 0, t2 = 0, r1, r2;
-  try {
-    t1 = arg1.toString().split(".")[1].length
-  } catch (e) {
-  }
-  try {
-    t2 = arg2.toString().split(".")[1].length
-  } catch (e) {
-  }
-  r1 = Number(arg1.toString().replace(".", ""))
-  r2 = Number(arg2.toString().replace(".", ""))
-  return (r1 / r2) * Math.pow(10, t2 - t1);
-})
 
 const setIntervalRAF = (fn: (...args: any[]) => void, delay: number) => {
   // 记录开始时间
@@ -128,7 +48,7 @@ const setIntervalRAF = (fn: (...args: any[]) => void, delay: number) => {
     // loop 本次被调用的时间
     const current = new Date().getTime();
     // 计算距离上次调用 loop 过了多久 = 本次调用时间 - 起始时间
-    const delta = sub(current, start);
+    const delta = current - start;
     // 如果 delta >= delay 就意味着已经经过 delay 的时间，将再次调用 fn
     if (delta >= delay) {
       fn();
@@ -149,6 +69,18 @@ export class Countdown {
     return this._isPause
   };
 
+  // 是否处于执行中
+  get processing() {
+    return this._processing
+  };
+
+  // 当前的值
+  get value() {
+    return this._value
+  };
+
+  private _value: undefined | number = undefined;
+  private _processing = false;
   private _isPause = false;
 
   // 一些用于矫正时间的数据
@@ -240,6 +172,7 @@ export class Countdown {
       delay: 1000,
       ...timerConfig,
     }
+
     // 浅克隆
     this.currentTimerConfig = {...this.timerConfig}
 
@@ -270,6 +203,7 @@ export class Countdown {
       case "RAF":
         return cancelAnimationFrame(this.handle.timer)
     }
+    this._processing = false
   };
 
   private log(...args: any[]) {
@@ -277,81 +211,27 @@ export class Countdown {
       case "none":
         return
       case "debug":
-        return console.log(TAG + " ", ...args);
+        return console.warn(TAG + " ", ...args);
       case "info":
-        return console.log(TAG + " ", ...args, this);
+        return console.warn(TAG + " ", ...args, this);
     }
-  }
-
-  start() {
-    const {from, to, delay, step} = this.currentTimerConfig
-    if (from === to) {
-      return this.complete()
-    }
-
-    // 起始时间 = 当前时间
-    this.timeForRectification.thisStartUpTime = new Date().getTime();
-    this.timeForRectification.thisExpectedEndTime = this.timeForRectification.thisStartUpTime + (((from - to) / step) * delay);
-
-    // console.log("起始时间为：", timeConverter(this.timeForRectification.thisStartUpTime))
-
-    // 这里乘 1000 是因为用的时间戳做对比
-    this.timeForRectification.currentExpectedEndTime = add(this.timeForRectification.thisStartUpTime, delay)
-
-    this.hooks.onStart();
-
-    this.handle = this.setInterval(() => {
-      if (this.currentTimerConfig.from <= to) {
-        this.handleUpdate(this.timerConfig.to)
-        return this.complete()
-      }
-
-      // this.log('countdown loop currentFromValue =>', this.currentFromValue);
-      const NotCompletedFromRectifyTime = this.rectifyTime()
-      if (NotCompletedFromRectifyTime) {
-        /**
-         * 假如起始时间为：      12:00
-         * 步进为              1分钟
-         * 当前已经执行过了一分   12:01
-         * 那么下次执行时间应该为  12:02 = 12:00 + 已执行时间 + 步进
-         *
-         */
-        this.timeForRectification.currentExpectedEndTime = this.getNewCurrentExpectedEndTime()
-        // console.log("新的期望时间为：", timeConverter(this.timeForRectification.currentExpectedEndTime))
-
-        let displayValue = this.currentTimerConfig.from
-
-        /**
-         * 假如 from = 0，to = 60，delay = 1000，step = 1
-         * 按照所有的情况都按递减处理，执行一次后 from = 59，to = 0，此时真实的值为 60 -59 = 1
-         */
-        if (this.direction === "increase") {
-          displayValue = sub(this.timerConfig.to, this.currentTimerConfig.from)
-        }
-        this.handleUpdate(displayValue)
-        this.currentTimerConfig.from = sub(this.currentTimerConfig.from, step)
-      } else {
-        this.handleUpdate(this.timerConfig.to)
-        return this.complete()
-      }
-    }, delay);
   }
 
   private handleUpdate(displayValue: number) {
+    this._value = displayValue
     this.hooks.onUpdate(displayValue)
   }
 
   private getNewCurrentExpectedEndTime() {
-    return add(
-      add(
-        this.timeForRectification.thisStartUpTime,
-        add(
-          mul(sub(this.timerConfig.from, this.currentTimerConfig.from), 1000),
-          this.currentTimerConfig.delay
-        )
-      ),
-      this.currentTimerConfig.delay
-    )
+    const realFrom = this.timerConfig.from > this.timerConfig.to
+      ? this.timerConfig.from
+      : this.timerConfig.to
+
+    return this.timeForRectification.thisStartUpTime
+      + (realFrom - this.currentTimerConfig.from)
+      * 1000
+      + this.currentTimerConfig.delay
+      + this.currentTimerConfig.delay
   }
 
   private complete() {
@@ -388,18 +268,19 @@ export class Countdown {
     const now = new Date().getTime();
 
     // 偏差 = 当前的倒计时 - 期望的当前剩余时间 - delay
-    let offset = sub(
-      sub(now, currentExpectedEndTime),
-      delay
-    )
+    let offset = now
+      - currentExpectedEndTime
+      - delay
 
     // console.log("新的当前时间为：", timeConverter(now))
+    // console.log("currentExpectedEndTime：", timeConverter(currentExpectedEndTime))
     // console.log("offset", offset)
 
     if (offset > this.config.precision) {
       // 检测少执行的次数
-      const count = div(offset, delay)
-      this.currentTimerConfig.from = sub(this.currentTimerConfig.from, mul(count, div(delay, 1000)))
+      const count = offset / delay
+      this.currentTimerConfig.from = this.currentTimerConfig.from
+        - (count * (delay / 1000))
       // 已经过了多少秒
       const time = (((this.timerConfig.from - this.currentTimerConfig.from) * 1000) + thisStartUpTime)
       // console.log("已经过了多少秒：", this.timerConfig.from - this.currentTimerConfig.from)
@@ -410,6 +291,66 @@ export class Countdown {
     }
 
     return true;
+  }
+
+  start() {
+    if (this._processing) {
+      this.log("A timer is already running and will be restarted.")
+      return this.restart()
+    }
+    this._processing = true
+    const {from, to, delay, step} = this.currentTimerConfig
+    if (from === to) {
+      return this.complete()
+    }
+
+    // 起始时间 = 当前时间
+    this.timeForRectification.thisStartUpTime = new Date().getTime();
+    this.timeForRectification.thisExpectedEndTime = this.timeForRectification.thisStartUpTime + (((from - to) / step) * delay);
+
+    // 这里乘 1000 是因为用的时间戳做对比
+    this.timeForRectification.currentExpectedEndTime = this.timeForRectification.thisStartUpTime + delay
+
+    // console.log("起始时间为：", timeConverter(this.timeForRectification.thisStartUpTime))
+    // console.log("本次期望结束时间为：", timeConverter(this.timeForRectification.currentExpectedEndTime))
+
+    this.hooks.onStart();
+
+    this.handle = this.setInterval(() => {
+      if (this.currentTimerConfig.from <= to) {
+        this.handleUpdate(this.timerConfig.to)
+        return this.complete()
+      }
+
+      // this.log('countdown loop currentFromValue =>', this.currentFromValue);
+      const NotCompletedFromRectifyTime = this.rectifyTime()
+      if (NotCompletedFromRectifyTime) {
+        /**
+         * 假如起始时间为：      12:00
+         * 步进为              1分钟
+         * 当前已经执行过了一分   12:01
+         * 那么下次执行时间应该为  12:02 = 12:00 + 已执行时间 + 步进
+         *
+         */
+        this.timeForRectification.currentExpectedEndTime = this.getNewCurrentExpectedEndTime()
+        // console.log("新的期望结束时间为：", timeConverter(this.timeForRectification.currentExpectedEndTime))
+
+        let displayValue = this.currentTimerConfig.from
+
+        /**
+         * 假如 from = 0，to = 60，delay = 1000，step = 1
+         * 按照所有的情况都按递减处理，执行一次后 from = 59，to = 0，此时真实的值为 60 -59 = 1
+         */
+        if (this.direction === "increase") {
+          displayValue = this.timerConfig.to - this.currentTimerConfig.from
+        }
+        this.handleUpdate(displayValue)
+        this.currentTimerConfig.from = this.currentTimerConfig.from - step
+      } else {
+        this.handleUpdate(this.timerConfig.to)
+        return this.complete()
+      }
+    }, delay);
   }
 
   /**
@@ -453,6 +394,7 @@ export class Countdown {
     const config = {...this.config, ...(ctorParameters.config || {})}
     const hooks = {...this.hooks, ...(ctorParameters.hooks || {})}
     this.initialize({timerConfig, config, hooks})
+    this._processing = false
     this.start();
   }
 

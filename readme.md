@@ -1,6 +1,8 @@
-# 基于配置的定时器管理器
+# 用于生产环境的定时器管理器
 
-> [实现原理：如何写一个靠谱的前端倒计时库](https://juejin.im/post/5e706477f265da57360ba65d)
+[TOC]
+
+> ~~[实现原理：如何写一个靠谱的前端倒计时库](https://juejin.im/post/5e706477f265da57360ba65d)~~	Work In Processing
 
 ## 快速上手
 
@@ -8,29 +10,26 @@
 
 ### 使用
 
-参考
-
 ```typescript
 // 导入
-import CountdownService from "./src";
+import { Countdown } from '@monchilin/countdown';
 
-// 实例化服务类，token 参考 other 部分
-const service = new CountdownService({token: "随机值"})
 
-// 每次触发定时器的回掉
-const doSome = (current) => {
-}
-
-// 增加监听器
-service.addListener(doSome)
-
-// 开始倒计时（从 60 开始，每 1000 毫秒，减少 1，直到小于等于 0 结束）
-service.countdown({
-  from: 60,
-  to: 0,
-  step: 1,
-  timeout: 1000,
+const countdown = new Countdown({
+  timerConfig: {
+    from: 10,
+    to: 0
+  },
+  hooks: {
+    onUpdate: (value) => {
+      console.log("值发生变化", value)
+    }
+  }
 })
+
+// 启动定时器
+countdown.start()
+
 ```
 
 ## 特性
@@ -49,11 +48,11 @@ service.countdown({
 
 ### Countdown 参数
 
-| 名称           | 描述                                                                                  | 类型签名                        | 默认值    | 可选  |
-| ------------ | ----------------------------------------------------------------------------------- | --------------------------- | ------ | --- |
-| loggerLevel  | 日志级别 none: 不打印 debug: 打印日志 info: 打印日志的同时打印当前实例                                      | "none" \| "debug" \| "info" | "none" | √   |
-| intervalImpl | 定时器的实现，默认为 RAF，在不支持 RAF 时则会回退到 setInterval，如果指定为 RAF 但是环境不支持 RAF 也会回退到 setInterval。 | "interval" \| "RAF"         | "RAF"  | √   |
-| precision    | 定时器精度                                                                               | number                      | 100    | √   |
+| 名称         | 描述                                                         | 类型签名                    | 默认值 | 可选 |
+| ------------ | ------------------------------------------------------------ | --------------------------- | ------ | ---- |
+| loggerLevel  | 日志级别 none: 不打印 debug: 打印日志 info: 打印日志的同时打印当前实例。如果定时器执行结果与预期不同，传入 "debug" 检查是否使用有误。 | "none" \| "debug" \| "info" | "none" | √    |
+| intervalImpl | 定时器的实现，默认为 RAF，在不支持 RAF 时则会回退到 setInterval，如果指定为 RAF 但是环境不支持 RAF 也会回退到 setInterval。 | "interval" \| "RAF"         | "RAF"  | √    |
+| precision    | 定时器精度                                                   | number                      | 100    | √    |
 
 ### 定时器参数
 
@@ -82,11 +81,25 @@ service.countdown({
 | onResume    | 当定时器被从暂停中恢复时调用                                                           | () => void                                  | √   |
 | onCompleted | 当定时器正常结束时调用                                                              | () => void                                  | √   |
 
+## 实例属性和实例方法
+
+| 名称       | 描述                                                         | 类型                          | 只读 | 返回值         |
+| ---------- | ------------------------------------------------------------ | ----------------------------- | ---- | -------------- |
+| isPause    | <属性> 是否处于暂停中，开发者也可以自行根据生命周期函数判断，请参考演示项目 | boolean                       | √    |                |
+| processing | <属性> 定时器是否处于执行中，开发者也可以自行根据生命周期函数判断 | boolean                       | √    |                |
+| value      | <属性> 当前的值，该属性初始为 `undefined`，在每次定时器执行后更新，与 `onUpdate` 生命周期函数的参数相同 | number\|undefined             | √    |                |
+| start      | <方法>启动定时器，如果定时器已经在执行中则重新启动定时器     | () => void                    |      | void           |
+| pause      | <方法>暂停定时器                                             | () => void                    |      | void           |
+| resume     | <方法>从暂停中恢复定时器，如果没有暂停则不进行任何操作       | () => void                    |      | void           |
+| restart    | <方法>接受构造函数相同的参数，将参数与原有参数合并，然后重新启动定时器 | (ctorParameters) => void      |      | void           |
+| destroy    | <方法>关闭定时器，如果定时器未启动则什么都不做               | () => void                    |      | void           |
+| Start      | <静态方法> 接受与构造函数相同的参数，并且直接执行定时器，返回 Countdown 实例 | (ctorParameters) => Countdown |      | Countdown 实例 |
+
 
 
 ## 从 0.x 版本迁移到 1.0
 
-这个库最初的版本设计之初作者某些 API 设计不够语义化，并且缺少部分 API，恰好这段时间有空做了一个大版本的重构，原有 API 进行了一些改变。
+这个库最初的版本设计之初作者某些 Api 设计不够语义化，并且缺少部分 Api，恰好这段时间有空做了一个大版本的重构，原有 Api 进行了一些改变。
 
 不过值得庆幸的是因为原有的思路设计已经足够成熟，所以大多数变化都是重命名和移动位置。
 
@@ -102,9 +115,11 @@ service.countdown({
 但是作者在使用的过程中也发觉这个参数不够友好，使用者在传入这个参数时还需要考虑参数是否唯一的问题，不然就会误伤已经在执行的定时器， 
 而且 Countdown 实例都丢失了 token 也基本上不会在找到了，所以索性移除了这个设计。
 
+### 移除原有 Listener(监听器) 设计
+
 ### 移动 countdown 函数的 start 和 complete 参数到生命周期参数
 
-原有的设计思路就是单纯的为定时器增加两个回调，在开始定时器和结束定时器时回调，在项目中推广时发现从开发角度设计简单实用的 api， 从使用者的角度却发现并不如意，恰好 `Vue`
+原有的设计思路就是单纯的为定时器增加两个回调，在开始定时器和结束定时器时回调，在项目中推广时发现从开发角度设计简单实用的 Api， 从使用者的角度却发现并不如意，恰好 `Vue`
 的生命周期设计启发了我，最后我将常用的[生命周期](#生命周期)整理在一起，这样看起来整齐了很多 Yeah!
 
 ### 新特性

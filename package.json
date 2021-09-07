@@ -1,20 +1,29 @@
 {
   "name": "@monchilin/countdown",
-  "version": "1.0.0-alpha.1",
+  "version": "1.0.0-alpha.3",
   "scripts": {
-    "build": "tsc -b ./tsconfig.json",
-    "dev": "tsc -w"
+    "dev": "rollup -c rollup.config.js -w",
+    "build": "rimraf dist && rimraf es && rollup -c rollup.config.js"
   },
   "private": false,
-  "main": "dist/index.js",
+  "main": "es/index.js",
   "repository": "https://github.com/MonchiLin/countdown.git",
   "author": "MonchiLin <lin912305043@gmail.com>",
   "license": "MIT",
   "files": [
-    "dist"
+    "es",
+    "dist",
+    "src"
   ],
   "devDependencies": {
+    "rimraf": "^3.0.2",
+    "@babel/core": "^7.15.5",
+    "rollup-plugin-typescript2": "^0.30.0",
+    "@rollup/plugin-babel": "^5.3.0",
+    "rollup-plugin-terser": "^7.0.2",
     "conventional-changelog-cli": "^2.1.1",
+    "rollup": "^2.56.3",
     "typescript": "^4.4.2"
-  }
+  },
+  "dependencies": {}
 }

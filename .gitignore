@@ -89,7 +89,6 @@ build/Release
 
 # Dependency directories
 node_modules/
-jspm_packages/
 
 /**/node_modules
 
@@ -115,13 +114,11 @@ typings/
 # dotenv environment variables file
 .env
 
-# next.js build output
-.next
-dist
+/dist/
 .idea
 .cache/*
 *.tsbuildinfo
 .cache
 *.iml
 .yarn
-.parcel-cache
+/es/
