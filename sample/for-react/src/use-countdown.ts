@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { Countdown, CountdownTypeDefinition } from "../countdown";
+import { Countdown, CountdownTypeDefinition } from "@monchilin/countdown/src";
 
 export const useCountdown = (ctorParameters: CountdownTypeDefinition.CtorParameters) => {
   const [pauseable, setPauseable] = useState(true)

@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { useCountdown } from "../use-countdown";
 import { Button, Tag, Typography } from "antd";
-import { Countdown } from "../../countdown";
+import { Countdown } from "@monchilin/countdown/src";
 
 const SendCaptcha = () => {
   const [disabled, setDisabled] = useState(false)
@@ -69,10 +69,9 @@ const UseStartDirectly = () => {
 }
 
 export function HooksApiExample2() {
-
-
   return (
     <Typography>
+      <Typography.Title level={2}>特性展示(HooksApi)</Typography.Title>
       <SendCaptcha/>
       <UseStartDirectly/>
     </Typography>

@@ -2,28 +2,28 @@ import React from "react";
 import "./SigongGrid.css"
 
 type P = {
-  TopLeft: React.FC
-  TopRight: React.FC
-  BottomLeft?: React.FC
-  BottomRight?: React.FC
+  TopLeft?: React.ComponentType
+  TopRight?: React.ComponentType
+  BottomLeft?: React.ComponentType
+  BottomRight?: React.ComponentType
 }
 
 export function SigongGrid({TopLeft, TopRight, BottomLeft, BottomRight}: P) {
   return <div className="parent">
     <div className="row">
       <div className="column">
-        {TopLeft?.({})}
+        {TopLeft && <TopLeft/>}
       </div>
       <div className="column">
-        {TopRight?.({})}
+        {TopRight && <TopRight/>}
       </div>
     </div>
     <div className="row">
       <div className="column">
-        {BottomLeft?.({})}
+        {BottomLeft && <BottomLeft/>}
       </div>
       <div className="column">
-        {BottomRight?.({})}
+        {BottomRight && <BottomRight/>}
       </div>
     </div>
   </div>

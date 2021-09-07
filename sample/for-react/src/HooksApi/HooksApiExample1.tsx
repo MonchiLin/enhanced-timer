@@ -2,15 +2,16 @@ import React, { useMemo } from 'react'
 import { useCountdown } from "../use-countdown";
 import { Button, Col, Row, Tag, Typography } from "antd";
 
-const {Title, Paragraph, Text, Link} = Typography;
-
 export function HooksApiExample1() {
   const countdown = useCountdown({
     timerConfig: {
       from: 0,
-      to: 2,
+      to: 10,
       step: 1,
-      delay: 2000
+      delay: 1000
+    },
+    config: {
+      loggerLevel: "debug"
     }
   })
 
@@ -29,7 +30,7 @@ export function HooksApiExample1() {
 
   return (
     <Typography>
-      <Title level={2}>基础功能演示</Title>
+      <Typography.Title level={2}>基础功能演示（HooksApi）</Typography.Title>
       <Tag color={"blue"}>
         当前值: {displayValue}
       </Tag>
