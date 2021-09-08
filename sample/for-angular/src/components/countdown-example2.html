@@ -1,0 +1,21 @@
+<article nz-typography>
+    <h2 nz-typography>特性展示</h2>
+    <h2 nz-typography>发送验证码</h2>
+    <nz-tag nzColor="green" *ngIf="disabled; else elseBlock">
+        剩余时间: {{countDownDisplayValue}}
+    </nz-tag>
+    <ng-template #elseBlock>
+        <nz-tag nzColor="green">
+            等待发送
+        </nz-tag>
+    </ng-template>
+
+    <button [disabled]="disabled" nz-button (click)="countdown.start()">
+        {{ isFirst ? "发送" : "重新发送" }}
+    </button>
+
+    <h2 nz-typography>直接使用 Start 静态方法</h2>
+    <nz-tag nzColor="green">
+        当前值: {{value2}}
+    </nz-tag>
+</article>

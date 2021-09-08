@@ -1,0 +1,25 @@
+<article nz-typography>
+    <h2 nz-typography>基础功能演示</h2>
+    <nz-tag nzColor="blue">
+        当前值: {{displayValue}}
+    </nz-tag>
+
+    <div nz-col>
+        <div nz-row>
+            <button nz-button (click)="countdown.start()">开始</button>
+        </div>
+        <div nz-row>
+            <button nz-button [disabled]="!pauseable" (click)="countdown.pause()">暂停</button>
+        </div>
+        <div nz-row>
+            <button nz-button [disabled]="!continueable" (click)="countdown.resume()">恢复</button>
+        </div>
+        <div nz-row>
+            <button nz-button (click)="countdown.destroy()">手动销毁</button>
+            <nz-tag *ngIf="destroyed" nzColor="magenta">销毁方式: {{friendlySource}}</nz-tag>
+        </div>
+        <div nz-row>
+            <button nz-button (click)="countdown.restart()">重置</button>
+        </div>
+    </div>
+</article>
