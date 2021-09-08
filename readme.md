@@ -1,8 +1,18 @@
 # 用于生产环境的定时器管理器
 
-[TOC]
+<p align="center">
+    <img alt="npm bundle size" src="https://img.shields.io/bundlephobia/min/@monchilin/countdown?label=size">
+    <img alt="npm bundle size" src="https://img.shields.io/bundlephobia/minzip/@monchilin/countdown?label=gzip%20size">
+    <img alt="NPM" src="https://img.shields.io/npm/l/@monchilin/countdown">
+</p>
+
+
+
+
 
 > ~~[实现原理：如何写一个靠谱的前端倒计时库](https://juejin.im/post/5e706477f265da57360ba65d)~~	Work In Processing
+
+> 体积轻巧无依赖的高性能定时器管理器，通过简单的数个 Api 即可避免 `setInterval` 带来的诸多问题，极大优化开发体验。
 
 ## 快速上手
 
@@ -40,9 +50,14 @@ countdown.start()
 -   [x] 可快速上手的语义化 API 设计，完全符合直觉
 -   [x] 自动清除结束的定时器(`clearInterval`)
 -   [x] 完全使用 TypeScript 编写，编译时保证类型安全
--   [x] React 版全功能示例(包含 Hooks 和 Class)
--   [ ] Vue 版全功能示例(包含 Option 和 CompositionApi)
--   [ ] Angular2+ 版全功能示例
+
+### 示例项目
+
+> 虽然该库本身已经足够简单通用，但是在前端框架中，视图层代码是需要框架提供的状态才能被驱动，所以即使库本身提供了一些常用的状态，在框架中使用也需要进行状态声明，所以作者也将真实的业务逻辑写在了下面项目中，请务必先阅读你擅长的前端框架示例项目在使用该库。
+
+- [x] [React 版全功能示例(包含 Hooks 和 Class)](https://github.com/MonchiLin/countdown/tree/master/sample/for-react)
+- [ ] Vue 版全功能示例(包含 Option 和 CompositionApi)
+- [x] [Angular2+ 版全功能示例](https://github.com/MonchiLin/countdown/tree/master/sample/for-angular)
 
 ## 构造函数参数
 
@@ -120,7 +135,7 @@ countdown.start()
 ### 移动 countdown 函数的 start 和 complete 参数到生命周期参数
 
 原有的设计思路就是单纯的为定时器增加两个回调，在开始定时器和结束定时器时回调，在项目中推广时发现从开发角度设计简单实用的 Api， 从使用者的角度却发现并不如意，恰好 `Vue`
-的生命周期设计启发了我，最后我将常用的[生命周期](#生命周期)整理在一起，这样看起来整齐了很多 Yeah!
+的生命周期设计启发了我，最后我将常用的[生命周期](#生命周期参数)整理在一起，这样看起来整齐了很多 Yeah!
 
 ### 新特性
 
