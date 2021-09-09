@@ -3,7 +3,8 @@
   "version": "1.0.0-alpha.3",
   "scripts": {
     "dev": "rollup -c rollup.config.js -w",
-    "build": "rimraf dist && rimraf es && rollup -c rollup.config.js"
+    "build": "rimraf dist && rimraf es && rollup -c rollup.config.js",
+    "version": "conventional-changelog -p angular -i CHANGELOG.md -s && git add CHANGELOG.md"
   },
   "private": false,
   "main": "es/index.js",
