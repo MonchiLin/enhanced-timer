@@ -1,3 +1,1 @@
-export * from "./countdown";
-
-export * from './type-definition'
+export { sum } from "./sum";
